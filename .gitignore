@@ -1,0 +1,15 @@
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Mac / Windows temp
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
