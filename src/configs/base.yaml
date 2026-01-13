@@ -1,2 +1,12 @@
 random:
   seed: 42
+
+model:
+  pretrained_model_name: "bert-base-uncased"
+
+data:
+  dataset_name: "stanfordnlp/snli"
+  max_length: 128
+
+eval:
+  batch_size: 32
