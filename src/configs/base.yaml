@@ -7,6 +7,9 @@ model:
 data:
   dataset_name: "stanfordnlp/snli"
   max_length: 128
+  num_proc: 4
 
 eval:
+  mode: "standard"
+  split: "validation"
   batch_size: 32

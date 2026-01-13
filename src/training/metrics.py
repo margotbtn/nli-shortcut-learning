@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, Tuple
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score, confusion_matrix
 
@@ -9,7 +8,7 @@ def compute_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     num_labels: int
-    ) -> Tuple[Dict[str, float], np.ndarray]:
+    ) -> tuple[dict[str, float], np.ndarray]:
     """Computes evaluation metrics and confusion metrics for classification.
 
     List of the computed metrics:
@@ -28,7 +27,7 @@ def compute_metrics(
         Confusion matrix as a 2D numpy array.
     """
     # Compute specified metrics
-    results: Dict[str, float] = {}
+    results: dict[str, float] = {}
     results['accuracy'] = accuracy_score(y_true, y_pred)
     results['f1_macro'] = f1_score(y_true, y_pred, average="macro", zero_division=0)
     results['recall_macro'] = recall_score(y_true, y_pred, average="macro", zero_division=0)

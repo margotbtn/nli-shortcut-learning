@@ -130,10 +130,5 @@ nli-shortcut-learning/
 │   ├── run_hypothesis_only.sh
 │   └── run_ood.sh
 │
-├── results/
-│   ├── tables/               # Quantitative results
-│   ├── figures/              # Plots and visualizations
-│   └── logs/                 # Training logs
-│
 └── notebooks/                # Exploratory analysis and visualization
 ```
