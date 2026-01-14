@@ -9,7 +9,21 @@ data:
   max_length: 128
   num_proc: 4
 
-eval:
-  mode: "standard"
+train:
+  split: "train"
+  batch_size: 16
+  epochs: 3
+  learning_rate: 2e-5
+  warmup_step: 30
+  keep_text: false
+
+validation:
   split: "validation"
   batch_size: 32
+  keep_text: true
+
+eval:
+  mode: "standard"
+  test_split: "test"
+  batch_size: 32
+  keep_text: true

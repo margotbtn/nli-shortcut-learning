@@ -6,102 +6,14 @@ import json
 
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, PreTrainedTokenizerBase, \
-    AutoModelForSequenceClassification, default_data_collator
-from transformers.tokenization_utils_base import BatchEncoding
-from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
+from src.models.load import load_model
 from src.training.metrics import compute_metrics
+from src.data.dataloaders import prepare_dataloader
 from src.utils.config import load_yaml_config
 from src.utils.logging import get_logger, make_run_dir
 from src.utils.seed import set_seed
-
-
-def tokenize_batch(
-        batch: dict[str, list[str]],
-        tokenizer: PreTrainedTokenizerBase,
-        max_length: int,
-        ) -> BatchEncoding:
-    """Tokenizes a batch of data using the provided tokenizer.
-
-    Args:
-        batch: A dictionary containing the batch data with keys 'premise' and 'hypothesis'.
-        tokenizer: The tokenizer to use for tokenization.
-        max_length: Maximum sequence length for tokenization.
-    
-    Returns:
-        A BatchEncoding containing tokenized fields (e.g., input_ids, attention_mask).
-        Values are typically Python lists at this stage; they become torch.Tensors after
-        calling ds.set_format(type="torch").
-    """
-    return tokenizer(
-        batch['premise'],
-        batch['hypothesis'],
-        padding=False,
-        truncation=True,
-        max_length=max_length,
-    )
-
-
-def prepare_dataloader(
-    dataset_name: str,
-    split: str,
-    tokenizer: PreTrainedTokenizerBase,
-    batch_size: int,
-    max_length: int,
-    num_proc: int | None = None,
-    ) -> tuple[DataLoader, list[str]]:
-    """Prepares the evaluation dataloader and label list.
-    
-    Args:
-        dataset_name: Name of the dataset to load.
-        split: Dataset split to use (e.g., 'validation').
-        tokenizer: Tokenizer for processing the dataset.
-        batch_size: Batch size for the dataloader.
-        max_length: Maximum sequence length for tokenization.
-        num_proc: Number of processes to use for dataset mapping and filtering.
-    
-    Returns:
-        A tuple containing the DataLoader and list of labels.
-    """
-    # Load the dataset
-    ds = load_dataset(dataset_name, split=split)
-
-    # Filter unlabeled examples
-    if "label" in ds.column_names:
-        ds = ds.filter(lambda x: x["label"] != -1, num_proc=num_proc)
-    
-    # Tokenize the dataset
-    ds = ds.map(
-        lambda x: tokenize_batch(x, tokenizer, max_length),
-        batched=True,
-        remove_columns=[c for c in ds.column_names if c not in ("label",)],
-        num_proc=num_proc,
-    )
-
-    # Set the format for PyTorch
-    ds.set_format(type="torch")
-
-    return DataLoader(ds, batch_size=batch_size, shuffle=False, collate_fn=default_data_collator), \
-        ds.features['label'].names
-
-
-def load_model(model_name: str, num_labels: int, device: torch.device) -> AutoModelForSequenceClassification:
-    """Loads a sequence classification model on the target device.
-    
-    Args:
-        model_name: Pretrained model name or path.
-        num_labels: Number of labels for classification.
-        device: Target device for the model.
-    
-    Returns:
-        The loaded model on the specified device."""
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name,
-        num_labels=num_labels,
-    )
-    model.to(device)
-    return model
 
 
 @torch.no_grad()
@@ -128,7 +40,7 @@ def evaluate(
     for batch in dataloader:
             # Move batch to device
             batch = {k: v.to(device) for k, v in batch.items()}
-            labels = batch.pop("label")
+            labels = batch.pop("labels")
 
             # Forward pass
             outputs = model(**batch)
@@ -205,6 +117,8 @@ def main() -> None:
     logger = get_logger(name=run_name, log_file=run_dir / 'run.log')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    logger.info("Starting evaluation...")
+
     # Instantiate the tokenizer
     logger.info("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(cfg['model']['pretrained_model_name'])
@@ -217,6 +131,8 @@ def main() -> None:
         tokenizer=tokenizer,
         batch_size=cfg['eval']['batch_size'],
         max_length=cfg['data']['max_length'],
+        shuffle=False,
+        keep_text=cfg['eval']['keep_text'],
         num_proc=cfg['data']['num_proc'],
     )
     num_labels = len(labels)
@@ -243,7 +159,7 @@ def main() -> None:
     save_results(
         output_path=run_dir / 'evaluation_results.json',
         dataset_name=cfg['data']['dataset_name'],
-        split=cfg['eval']['split'],
+        split=cfg['eval']['test_split'],
         evaluation_mode=cfg['eval']['mode'],
         model_name=cfg['model']['pretrained_model_name'],
         checkpoint='latest',
