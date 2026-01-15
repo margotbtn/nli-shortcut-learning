@@ -13,9 +13,9 @@ data:
 train:
   split: "train"
   batch_size: 16
-  epochs: 1
+  epochs: 3
   learning_rate: 0.00002
-  warmup_step: 30
+  warmup_step: 9000
   keep_text: false
   checkpoint_every_n_steps: 200
   checkpoint: "pretrained"
