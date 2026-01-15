@@ -13,11 +13,12 @@ data:
 train:
   split: "train"
   batch_size: 16
-  epochs: 3
-  learning_rate: 2e-5
+  epochs: 1
+  learning_rate: 0.00002
   warmup_step: 30
   keep_text: false
   checkpoint: "pretrained"
+  log_every: 100
   run_dir: null
 
 validation:
@@ -27,8 +28,10 @@ validation:
 
 eval:
   mode: "standard"
+  split: "test"
   test_split: "test"
   batch_size: 32
   keep_text: true
+  log_every: 15
   checkpoint: "pretrained"
   training_run_dir: null

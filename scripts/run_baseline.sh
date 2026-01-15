@@ -8,13 +8,14 @@ set -euo pipefail
 MODE="${1:-}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 case "${MODE}" in
   train)
     python "${REPO_ROOT}/src/training/train.py"
     ;;
   eval|evaluate)
-    python "${REPO_ROOT}/src/training/evaluate.py"
+    python "${REPO_ROOT}/src/training/eval.py"
     ;;
   *)
     echo "Usage: $0 {train|eval}"

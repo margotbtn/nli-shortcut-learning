@@ -12,7 +12,8 @@ from src.training.eval import evaluate
 from src.utils.config import load_yaml_config
 from src.utils.logging import get_logger, make_run_dir
 from src.utils.seed import set_seed
-from src.models.load import load_model, load_checkpoint, save_checkpoint
+from src.models.load import load_model
+from src.models.checkpoints import load_checkpoint, save_checkpoint
 from src.data.dataloaders import prepare_dataloader
 
 
@@ -210,6 +211,7 @@ def main() -> None:
     train_dataloader, labels = prepare_dataloader(
         dataset_name=cfg['data']['dataset_name'],
         split=cfg['train']['split'],
+        tokenizer=tokenizer,
         batch_size=cfg['train']['batch_size'],
         max_length=cfg['data']['max_length'],
         shuffle=True,
@@ -245,7 +247,7 @@ def main() -> None:
     optimizer = AdamW(model.parameters(), lr=cfg['train']['learning_rate'])
     lr_sched = get_linear_schedule_with_warmup(
         optimizer=optimizer,
-        num_warmup_steps=cfg['train']['warmup_steps'],
+        num_warmup_steps=cfg['train']['warmup_step'],
         num_training_steps=cfg['train']['epochs'] * len(train_dataloader),
     )
 

@@ -6,7 +6,7 @@ from typing import Literal
 from transformers import AutoModelForSequenceClassification
 
 
-def load_pretrained_model(
+def load_model(
         model_name: str,
         num_labels: int,
         device: torch.device,

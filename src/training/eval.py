@@ -55,7 +55,7 @@ def evaluate(
 
             # Move batch to device
             batch = {k: v.to(device) for k, v in batch.items()}
-            labels = batch.pop("labels")
+            labels = batch["labels"]
 
             # Forward pass
             outputs = model(**batch)
@@ -112,7 +112,7 @@ def main() -> None:
         f"{cfg['data']['dataset_name'].split('/')[-1]}_"
         f"{cfg['model']['pretrained_model_name'].replace('/', '-')}"
     )
-    run_dir = Path('results', run_name=run_name)
+    run_dir = make_run_dir(base_dir=Path('results'), run_name=run_name)
     logger = get_logger(name=run_name, log_file=run_dir / 'run.log')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -144,7 +144,7 @@ def main() -> None:
         num_labels=num_labels,
         device=device,
         checkpoint=cfg['eval']['checkpoint'],
-        run_dir=Path(cfg['eval']['training_run_dir']),
+        run_dir=Path(cfg['eval']['training_run_dir']) if cfg['eval']['training_run_dir'] else None,
     )
 
     # Run evaluation and compute metrics
@@ -162,6 +162,7 @@ def main() -> None:
     logger.info("Saving results...")
     save_results(
         run_dir=run_dir,
+        config=cfg,
         labels=labels,
         metrics=metrics,
         confusion_matrix=cm,

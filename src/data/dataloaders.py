@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from torch.utils.data import DataLoader
-from transformers import PreTrainedTokenizerBase, default_data_collator
+from transformers import PreTrainedTokenizerBase, DataCollatorWithPadding
 from transformers.tokenization_utils_base import BatchEncoding
 from datasets import load_dataset
 
@@ -87,11 +87,13 @@ def prepare_dataloader(
         columns.append("token_type_ids")
     ds.set_format(type="torch", columns=columns)
 
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
     return DataLoader(
         ds,
         batch_size=batch_size,
         shuffle=shuffle,
-        collate_fn=default_data_collator,
+        collate_fn=data_collator,
         num_workers=num_workers,
         pin_memory=True,
         ), \
