@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase, default_data_collator
 from transformers.tokenization_utils_base import BatchEncoding
@@ -40,7 +42,8 @@ def prepare_dataloader(
     max_length: int,
     shuffle: bool = False,
     keep_text: bool = False,
-    num_proc: int | None = None,
+    num_proc: int = min(4, os.cpu_count() or 1),
+    num_workers: int = 2,
     ) -> tuple[DataLoader, list[str]]:
     """Prepares the dataloader and labels list.
     
@@ -53,6 +56,7 @@ def prepare_dataloader(
         shuffle: Whether to shuffle the data in the DataLoader.
         keep_text: Whether to keep the original text fields in the dataset.
         num_proc: Number of processes to use for dataset mapping and filtering.
+        num_workers: Number of worker processes for the DataLoader.
     
     Returns:
         A tuple containing the DataLoader and list of labels.
@@ -83,5 +87,12 @@ def prepare_dataloader(
         columns.append("token_type_ids")
     ds.set_format(type="torch", columns=columns)
 
-    return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, collate_fn=default_data_collator), \
-        ds.features['labels'].names
+    return DataLoader(
+        ds,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=default_data_collator,
+        num_workers=num_workers,
+        pin_memory=True,
+        ), \
+            ds.features['labels'].names

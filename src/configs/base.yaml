@@ -8,6 +8,7 @@ data:
   dataset_name: "stanfordnlp/snli"
   max_length: 128
   num_proc: 4
+  num_workers: 2
 
 train:
   split: "train"
@@ -16,6 +17,8 @@ train:
   learning_rate: 2e-5
   warmup_step: 30
   keep_text: false
+  checkpoint: "pretrained"
+  run_dir: null
 
 validation:
   split: "validation"
@@ -27,3 +30,5 @@ eval:
   test_split: "test"
   batch_size: 32
   keep_text: true
+  checkpoint: "pretrained"
+  training_run_dir: null

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 import json
+import logging
 
 import torch
 from torch.utils.data import DataLoader
@@ -22,7 +23,9 @@ def evaluate(
     dataloader: DataLoader,
     device: torch.device,
     num_labels: int,
-) -> tuple[dict[str, float], np.ndarray]:
+    log_every: int,
+    logger: logging.Logger,
+) -> tuple[dict[str, float], np.ndarray, float]:
     """Runs evaluation loop and computes metrics.
     
     Args:
@@ -30,14 +33,26 @@ def evaluate(
         dataloader: DataLoader for the evaluation dataset.
         device: Device to run the evaluation on.
         num_labels: Number of unique labels in the classification task.
+        log_every: Frequency of logging evaluation progress.
+        logger: Logger for logging evaluation progress.
     
     Returns:
-        A tuple containing the computed metrics and confusion matrix."""
+        Computed metrics (accuracy, recall, precision, f1).
+        Confusion matrix.
+        Average loss over the evaluated dataset."""
     model.eval()
+
+    # Initialization
     all_preds = []
     all_labels = []
+    num_steps = len(dataloader)
+    epoch_loss = 0.0
 
-    for batch in dataloader:
+    for i, batch in enumerate(dataloader, start=1):
+            # Log progress every log_step
+            if i % log_every == 0 and i > 0:
+                logger.info(f"  Evaluation step {i}/{num_steps}...")
+
             # Move batch to device
             batch = {k: v.to(device) for k, v in batch.items()}
             labels = batch.pop("labels")
@@ -45,6 +60,8 @@ def evaluate(
             # Forward pass
             outputs = model(**batch)
             predictions = torch.argmax(outputs.logits, dim=-1)
+            loss = outputs.loss
+            epoch_loss += loss.item()
 
             all_preds.extend(predictions.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
@@ -54,53 +71,35 @@ def evaluate(
     y_pred = np.array(all_preds)
     metrics, cm = compute_metrics(y_true, y_pred, num_labels)
 
-    return metrics, cm
+    return metrics, cm, epoch_loss / num_steps
 
 
 def save_results(
-    output_path: str | Path,
-    dataset_name: str,
-    split: str,
-    evaluation_mode: str,
-    model_name: str,
-    checkpoint: str,
-    num_examples: int,
+    run_dir: str | Path,
+    config: dict[str, any],
     labels: list[str],
     metrics: dict[str, float],
     confusion_matrix: np.ndarray,
     ) -> None:
-    """Saves evaluation results to the specified output path.
+    """Saves config and evaluation.
     
     Args:
-        output_path: Path to save the evaluation results.
-        dataset_name: Name of the evaluated dataset.
-        split: Dataset split used for evaluation.
-        evaluation_mode: Mode of evaluation (e.g., 'standard', 'hypothesis_only').
-        model_name: Name of the evaluated model.
-        checkpoint: Checkpoint identifier of the evaluated model.
-        num_examples: Number of examples evaluated.
+        run_dir: Directory to save the results in.
+        config: Configuration dictionary used for evaluation.
         labels: List of label names.
         metrics: Dictionary of computed metrics.
         confusion_matrix: Confusion matrix as a numpy array.
     """
-    to_save = {
-        "evaluation_metadata": {
-            "dataset": dataset_name,
-            "split": split,
-            "evaluation_mode": evaluation_mode,
-            "model_name": model_name,
-            "checkpoint": checkpoint,
-            "num_examples": num_examples,
-        },
-        "labels": labels,
-        "metrics": metrics,
-        "confusion_matrix": confusion_matrix.tolist(),
-    }
+    run_dir = Path(run_dir)
 
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(to_save, f, indent=2, sort_keys=True)
+    enriched_config = {**config, 'labels': labels}
+    with open(run_dir / "config_with_labels.json", "w", encoding="utf-8") as f:
+        json.dump(enriched_config, f, indent=2, sort_keys=True)
+    
+    with open(run_dir / "metrics.json", "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2, sort_keys=True)
+    
+    np.save(run_dir / "confusion_matrix.npy", confusion_matrix)
 
 
 def main() -> None:
@@ -113,7 +112,7 @@ def main() -> None:
         f"{cfg['data']['dataset_name'].split('/')[-1]}_"
         f"{cfg['model']['pretrained_model_name'].replace('/', '-')}"
     )
-    run_dir = make_run_dir(base_dir='results', run_name=run_name)
+    run_dir = Path('results', run_name=run_name)
     logger = get_logger(name=run_name, log_file=run_dir / 'run.log')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -134,6 +133,7 @@ def main() -> None:
         shuffle=False,
         keep_text=cfg['eval']['keep_text'],
         num_proc=cfg['data']['num_proc'],
+        num_workers=cfg['data']['num_workers'],
     )
     num_labels = len(labels)
 
@@ -143,27 +143,25 @@ def main() -> None:
         model_name=cfg['model']['pretrained_model_name'],
         num_labels=num_labels,
         device=device,
+        checkpoint=cfg['eval']['checkpoint'],
+        run_dir=Path(cfg['eval']['training_run_dir']),
     )
 
     # Run evaluation and compute metrics
     logger.info("Running evaluation...")
-    metrics, cm = evaluate(
+    metrics, cm, _ = evaluate(
         model=model,
         dataloader=dataloader,
         device=device,
         num_labels=num_labels,
+        log_every=cfg['eval']['log_every'],
+        logger=logger,
     )
 
     # Save the results
     logger.info("Saving results...")
     save_results(
-        output_path=run_dir / 'evaluation_results.json',
-        dataset_name=cfg['data']['dataset_name'],
-        split=cfg['eval']['test_split'],
-        evaluation_mode=cfg['eval']['mode'],
-        model_name=cfg['model']['pretrained_model_name'],
-        checkpoint='latest',
-        num_examples=len(dataloader.dataset),
+        run_dir=run_dir,
         labels=labels,
         metrics=metrics,
         confusion_matrix=cm,
