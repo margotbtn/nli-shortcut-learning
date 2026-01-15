@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-import torch
 import json
+import random
+
+import numpy as np
+import torch
 from transformers import PreTrainedModel
 
 
@@ -14,6 +17,8 @@ def save_checkpoint(
     epoch: int,
     best_val_loss: float,
     val_metrics: dict[str, float],
+    global_step: int | None = None,
+    step_in_epoch: int | None = None,
     ) -> None:
     """Saves a training checkpoint to `ckpt_dir`.
 
@@ -44,15 +49,22 @@ def save_checkpoint(
     state = {
         "epoch": epoch,
         "best_val_loss": best_val_loss,
+        "global_step": global_step,
+        "step_in_epoch": step_in_epoch,
         "optimizer_state_dict": optimizer.state_dict(),
         "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
+        "random_state": random.getstate(),
+        "numpy_state": np.random.get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_state": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
     }
     torch.save(state, ckpt_dir / "trainer_state.pt")
 
     # Save validation metrics for all epochs
-    with open(ckpt_dir / "validation_metrics.jsonl", "a", encoding="utf-8") as f:
-        json.dump({"epoch": epoch, **val_metrics}, f)
-        f.write("\n")
+    if val_metrics:
+        with open(ckpt_dir / "validation_metrics.jsonl", "a", encoding="utf-8") as f:
+            json.dump({"epoch": epoch, **val_metrics}, f)
+            f.write("\n")
 
 
 def load_checkpoint(
@@ -79,6 +91,21 @@ def load_checkpoint(
     )
 
     optimizer.load_state_dict(state.pop("optimizer_state_dict"))
-    scheduler.load_state_dict(state.pop("scheduler_state_dict"))
+    scheduler_state = state.pop("scheduler_state_dict", None)
+    if scheduler is not None and scheduler_state is not None:
+        scheduler.load_state_dict(scheduler_state)
+
+    random_state = state.pop("random_state", None)
+    if random_state is not None:
+        random.setstate(random_state)
+    numpy_state = state.pop("numpy_state", None)
+    if numpy_state is not None:
+        np.random.set_state(numpy_state)
+    torch_rng_state = state.pop("torch_rng_state", None)
+    if torch_rng_state is not None:
+        torch.set_rng_state(torch_rng_state)
+    cuda_rng_state = state.pop("cuda_rng_state", None)
+    if cuda_rng_state is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(cuda_rng_state)
 
     return state

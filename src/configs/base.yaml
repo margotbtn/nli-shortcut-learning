@@ -17,8 +17,8 @@ train:
   learning_rate: 0.00002
   warmup_step: 30
   keep_text: false
+  checkpoint_every_n_steps: 200
   checkpoint: "pretrained"
-  log_every: 100
   run_dir: null
 
 validation:
@@ -32,6 +32,5 @@ eval:
   test_split: "test"
   batch_size: 32
   keep_text: true
-  log_every: 15
   checkpoint: "pretrained"
   training_run_dir: null

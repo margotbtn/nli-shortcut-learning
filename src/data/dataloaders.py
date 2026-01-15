@@ -1,11 +1,21 @@
 from __future__ import annotations
 
 import os
+import random
 
+import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase, DataCollatorWithPadding
 from transformers.tokenization_utils_base import BatchEncoding
 from datasets import load_dataset
+
+
+def seed_worker(_worker_id: int) -> None:
+    """Seed worker processes for reproducible data loading."""
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 def tokenize_batch(
@@ -44,6 +54,7 @@ def prepare_dataloader(
     keep_text: bool = False,
     num_proc: int = min(4, os.cpu_count() or 1),
     num_workers: int = 2,
+    generator: torch.Generator | None = None,
     ) -> tuple[DataLoader, list[str]]:
     """Prepares the dataloader and labels list.
     
@@ -96,5 +107,7 @@ def prepare_dataloader(
         collate_fn=data_collator,
         num_workers=num_workers,
         pin_memory=True,
+        worker_init_fn=seed_worker,
+        generator=generator,
         ), \
             ds.features['labels'].names

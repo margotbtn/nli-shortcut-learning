@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 import json
 import logging
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
@@ -23,7 +24,6 @@ def evaluate(
     dataloader: DataLoader,
     device: torch.device,
     num_labels: int,
-    log_every: int,
     logger: logging.Logger,
 ) -> tuple[dict[str, float], np.ndarray, float]:
     """Runs evaluation loop and computes metrics.
@@ -33,7 +33,6 @@ def evaluate(
         dataloader: DataLoader for the evaluation dataset.
         device: Device to run the evaluation on.
         num_labels: Number of unique labels in the classification task.
-        log_every: Frequency of logging evaluation progress.
         logger: Logger for logging evaluation progress.
     
     Returns:
@@ -48,11 +47,7 @@ def evaluate(
     num_steps = len(dataloader)
     epoch_loss = 0.0
 
-    for i, batch in enumerate(dataloader, start=1):
-            # Log progress every log_step
-            if i % log_every == 0 and i > 0:
-                logger.info(f"  Evaluation step {i}/{num_steps}...")
-
+    for batch in tqdm(dataloader):
             # Move batch to device
             batch = {k: v.to(device) for k, v in batch.items()}
             labels = batch["labels"]
@@ -154,7 +149,6 @@ def main() -> None:
         dataloader=dataloader,
         device=device,
         num_labels=num_labels,
-        log_every=cfg['eval']['log_every'],
         logger=logger,
     )
 
