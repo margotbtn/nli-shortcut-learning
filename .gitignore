@@ -13,3 +13,10 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
+.devcontainer/
+
+results/
+data/raw/
+
+# To reveal later
+notebooks/
