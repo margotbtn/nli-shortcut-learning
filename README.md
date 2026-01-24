@@ -102,33 +102,16 @@ nli-shortcut-learning/
 ├── README.md                 # Project overview and results
 ├── requirements.txt          # Python dependencies
 │
-├── data/
-│   ├── raw/                  # Original SNLI/MNLI data
-│   ├── processed/
-│   │   ├── standard/         # Standard evaluation split
-│   │   ├── hypothesis_only/  # Premise removed
-│   │   ├── anti_shortcut/    # Spurious correlations neutralized
-│   │   └── ood/              # Distribution-shifted splits
-│   └── README.md             # Dataset and split descriptions
-│
 ├── src/
 │   ├── configs/              # Training and evaluation configs
 │   ├── data/                 # Data loading and split creation
-│   ├── models/               # NLI models and hypothesis-only variants
-│   ├── training/             # Training and evaluation loops
-│   ├── analysis/             # Shortcut and representation analysis
-│   └── utils/                # Logging, seeding, helpers
-│
-├── experiments/
-│   ├── exp_01_baseline.md
-│   ├── exp_02_hypothesis_only.md
-│   ├── exp_03_ood_shift.md
-│   └── exp_04_mitigation.md
+│   ├── models/               # Model loading and checkpoints
+│   ├── training/             # Training, evaluation, metrics
+│   └── utils/                # Logging, seeding, config helpers
 │
 ├── scripts/
-│   ├── run_baseline.sh
-│   ├── run_hypothesis_only.sh
-│   └── run_ood.sh
+│   └── run_baseline.sh        # Example training run
 │
-└── notebooks/                # Exploratory analysis and visualization
+└── notebooks/                # Exploratory analysis
+    └── exploration.ipynb
 ```

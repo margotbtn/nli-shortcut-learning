@@ -34,7 +34,7 @@ def load_model(
                 raise ValueError(f"Provided run_dir '{run_dir}' does not exist.")
     
     # Load the model
-    model_name_or_path = model_name if checkpoint == 'pretrained' else run_dir / 'checkpoints' / checkpoint
+    model_name_or_path = model_name if checkpoint == 'pretrained' else run_dir / 'checkpoints' / checkpoint / 'model'
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name_or_path,
         num_labels=num_labels,

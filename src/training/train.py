@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 import logging
 from tqdm import tqdm
 
@@ -228,12 +229,23 @@ def train(
         state["step_in_epoch"] = 0
 
 
-def main() -> None:
-    """High-level evaluation entry point."""
-    # Configuration and setup
-    cfg = load_yaml_config()
+def main(
+    config_path: str,
+    checkpoint: str = "pretrained",
+    run_dir: str | None = None,
+) -> None:
+    """High-level training entry point."""
+    # Get the configuration
+    overrides = {
+        ("train", "checkpoint"): checkpoint,
+        ("train", "run_dir"): run_dir,
+    }
+    cfg = load_yaml_config(config_path, overrides)
+
+    # Set the seed
     set_seed(cfg['random']['seed'])
 
+    # Set run_name and run_dir
     if cfg['train']['checkpoint'] == 'pretrained':
         run_name = (
             "train_"
@@ -247,7 +259,10 @@ def main() -> None:
         run_dir = Path(cfg['train']['run_dir'])
         run_name = run_dir.name
     
+    # Set up the logger
     logger = get_logger(name=run_name, log_file=run_dir / 'run.log')
+
+    # Set the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     logger.info("Starting training...")
@@ -338,4 +353,18 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train a sequence classification model.")
+    parser.add_argument("--config", required=True, help="Path to YAML config.")
+    parser.add_argument(
+        "--checkpoint",
+        choices=["latest", "pretrained"],
+        default="pretrained",
+        help="Checkpoint to start from (train only supports latest/pretrained).",
+    )
+    parser.add_argument(
+        "--run_dir",
+        default=None,
+        help="Run directory (required when checkpoint is not pretrained).",
+    )
+    args = parser.parse_args()
+    main(args.config, args.checkpoint, args.run_dir)

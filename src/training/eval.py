@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import numpy as np
 from pathlib import Path
 import json
@@ -97,18 +98,36 @@ def save_results(
     np.save(run_dir / "confusion_matrix.npy", confusion_matrix)
 
 
-def main() -> None:
+def main(
+    config_path: str,
+    checkpoint: str = "pretrained",
+    training_run_dir: str | None = None,
+) -> None:
     """High-level evaluation entry point."""
-    # Configuration and setup
-    cfg = load_yaml_config()
+    # Get the configuration
+    overrides = {
+        ("eval", "checkpoint"): checkpoint,
+        ("eval", "training_run_dir"): training_run_dir,
+    }
+    cfg = load_yaml_config(config_path, overrides)
+
+    # Set the seed
     set_seed(cfg['random']['seed'])
+
+    # Set run_name and run_dir
+    if cfg['eval']['checkpoint'] != 'pretrained' and not cfg['eval']['training_run_dir']:
+        raise ValueError("training_run_dir is required when checkpoint is not 'pretrained'.")
     run_name = (
         f"eval_{cfg['eval']['mode']}_"
         f"{cfg['data']['dataset_name'].split('/')[-1]}_"
         f"{cfg['model']['pretrained_model_name'].replace('/', '-')}"
     )
     run_dir = make_run_dir(base_dir=Path('results'), run_name=run_name)
+
+    # Set up the logger
     logger = get_logger(name=run_name, log_file=run_dir / 'run.log')
+
+    # Set the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     logger.info("Starting evaluation...")
@@ -166,4 +185,18 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Evaluate a sequence classification model.")
+    parser.add_argument("--config", required=True, help="Path to YAML config.")
+    parser.add_argument(
+        "--checkpoint",
+        choices=["best", "latest", "pretrained"],
+        default="pretrained",
+        help="Checkpoint to evaluate (default: pretrained).",
+    )
+    parser.add_argument(
+        "--training_run_dir",
+        default=None,
+        help="Training run directory for latest/best checkpoints.",
+    )
+    args = parser.parse_args()
+    main(args.config, args.checkpoint, args.training_run_dir)

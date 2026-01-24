@@ -88,6 +88,7 @@ def load_checkpoint(
     state = torch.load(
         Path(ckpt_dir) / "trainer_state.pt",
         map_location=map_location,
+        weights_only=False,
     )
 
     optimizer.load_state_dict(state.pop("optimizer_state_dict"))
