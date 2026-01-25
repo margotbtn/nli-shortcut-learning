@@ -1,5 +1,7 @@
+# src/training/eval.py
 from __future__ import annotations
 
+from typing import Any
 import argparse
 import numpy as np
 from pathlib import Path
@@ -17,6 +19,7 @@ from src.data.dataloaders import prepare_dataloader
 from src.utils.config import load_yaml_config
 from src.utils.logging import get_logger, make_run_dir
 from src.utils.seed import set_seed
+from src.utils.typing import InputView, Checkpoint
 
 
 @torch.no_grad()
@@ -72,7 +75,7 @@ def evaluate(
 
 def save_results(
     run_dir: str | Path,
-    config: dict[str, any],
+    config: dict[str, Any],
     labels: list[str],
     metrics: dict[str, float],
     confusion_matrix: np.ndarray,
@@ -99,17 +102,18 @@ def save_results(
 
 
 def main(
-    config_path: str,
-    checkpoint: str = "pretrained",
+    input_view: Checkpoint = "pair",
+    checkpoint: InputView = "pretrained",
     training_run_dir: str | None = None,
 ) -> None:
     """High-level evaluation entry point."""
     # Get the configuration
     overrides = {
+        ('data', 'input_view'): input_view,
         ("eval", "checkpoint"): checkpoint,
         ("eval", "training_run_dir"): training_run_dir,
     }
-    cfg = load_yaml_config(config_path, overrides)
+    cfg = load_yaml_config('src/config.yaml', overrides)
 
     # Set the seed
     set_seed(cfg['random']['seed'])
@@ -119,6 +123,7 @@ def main(
         raise ValueError("training_run_dir is required when checkpoint is not 'pretrained'.")
     run_name = (
         f"eval_{cfg['eval']['mode']}_"
+        f"{input_view}_"
         f"{cfg['data']['dataset_name'].split('/')[-1]}_"
         f"{cfg['model']['pretrained_model_name'].replace('/', '-')}"
     )
@@ -141,6 +146,7 @@ def main(
     dataloader, labels = prepare_dataloader(
         dataset_name=cfg['data']['dataset_name'],
         split=cfg['eval']['split'],
+        input_view=cfg['data']['input_view'],
         tokenizer=tokenizer,
         batch_size=cfg['eval']['batch_size'],
         max_length=cfg['data']['max_length'],
@@ -186,7 +192,12 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate a sequence classification model.")
-    parser.add_argument("--config", required=True, help="Path to YAML config.")
+    parser.add_argument(
+        "--input_view",
+        choices=["pair", "hypothesis_only"],
+        default="pair",
+        help="Train and evaluate the model either on both sentences or only the hypothesis.",
+    )
     parser.add_argument(
         "--checkpoint",
         choices=["best", "latest", "pretrained"],
@@ -199,4 +210,4 @@ if __name__ == "__main__":
         help="Training run directory for latest/best checkpoints.",
     )
     args = parser.parse_args()
-    main(args.config, args.checkpoint, args.training_run_dir)
+    main(args.input_view, args.checkpoint, args.training_run_dir)

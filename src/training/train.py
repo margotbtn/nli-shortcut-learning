@@ -1,5 +1,7 @@
+# src/training/train.py
 from __future__ import annotations
 
+from typing import Any
 from pathlib import Path
 import argparse
 import logging
@@ -14,6 +16,7 @@ from src.training.eval import evaluate
 from src.utils.config import load_yaml_config
 from src.utils.logging import get_logger, make_run_dir
 from src.utils.seed import set_seed
+from src.utils.typing import InputView, Checkpoint
 from src.models.load import load_model
 from src.models.checkpoints import load_checkpoint, save_checkpoint
 from src.data.dataloaders import prepare_dataloader
@@ -25,12 +28,12 @@ def train_step(
         validation_dataloader: DataLoader,
         device: torch.device,
         optimizer: torch.optim.Optimizer,
-        lr_scheduler: any,
+        lr_scheduler: Any,
         logger: logging.Logger,
         epoch: int,
         checkpoint_every_n_steps: int | None = None,
         run_dir: str | Path | None = None,
-        state: dict[str, any] | None = None,
+        state: dict[str, Any] | None = None,
         skip_steps: int = 0,
         ) ->tuple[float, float, dict[str, float]]:
     """Trains the model for one epoch.
@@ -125,10 +128,10 @@ def train(
     device: torch.device,
     epochs: int,
     optimizer: torch.optim.Optimizer,
-    lr_scheduler: any,
+    lr_scheduler: Any,
     logger: logging.Logger,
     run_dir: str | Path,
-    saved_state: dict[str, any] | None = None,
+    saved_state: dict[str, Any] | None = None,
     checkpoint_every_n_steps: int | None = None,
     seed: int | None = None,
     train_generator: torch.Generator | None = None,
@@ -230,17 +233,18 @@ def train(
 
 
 def main(
-    config_path: str,
-    checkpoint: str = "pretrained",
+    input_view: InputView = "pair",
+    checkpoint: Checkpoint = "pretrained",
     run_dir: str | None = None,
 ) -> None:
     """High-level training entry point."""
     # Get the configuration
     overrides = {
+        ('data', 'input_view'): input_view,
         ("train", "checkpoint"): checkpoint,
         ("train", "run_dir"): run_dir,
     }
-    cfg = load_yaml_config(config_path, overrides)
+    cfg = load_yaml_config('src/config.yaml', overrides)
 
     # Set the seed
     set_seed(cfg['random']['seed'])
@@ -249,6 +253,7 @@ def main(
     if cfg['train']['checkpoint'] == 'pretrained':
         run_name = (
             "train_"
+            f"{input_view}_"
             f"{cfg['data']['dataset_name'].split('/')[-1]}_"
             f"{cfg['model']['pretrained_model_name'].replace('/', '-')}"
         )
@@ -277,6 +282,7 @@ def main(
     train_dataloader, labels = prepare_dataloader(
         dataset_name=cfg['data']['dataset_name'],
         split=cfg['train']['split'],
+        input_view=cfg['data']['input_view'],
         tokenizer=tokenizer,
         batch_size=cfg['train']['batch_size'],
         max_length=cfg['data']['max_length'],
@@ -289,6 +295,7 @@ def main(
     validation_dataloader, _ = prepare_dataloader(
         dataset_name=cfg['data']['dataset_name'],
         split=cfg['validation']['split'],
+        input_view=cfg['data']['input_view'],
         tokenizer=tokenizer,
         batch_size=cfg['validation']['batch_size'],
         max_length=cfg['data']['max_length'],
@@ -354,7 +361,12 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a sequence classification model.")
-    parser.add_argument("--config", required=True, help="Path to YAML config.")
+    parser.add_argument(
+        "--input_view",
+        choices=["pair", "hypothesis_only"],
+        default="pair",
+        help="Train and evaluate the model either on both sentences or only the hypothesis.",
+    )
     parser.add_argument(
         "--checkpoint",
         choices=["latest", "pretrained"],
@@ -367,4 +379,4 @@ if __name__ == "__main__":
         help="Run directory (required when checkpoint is not pretrained).",
     )
     args = parser.parse_args()
-    main(args.config, args.checkpoint, args.run_dir)
+    main(args.input_view, args.checkpoint, args.run_dir)

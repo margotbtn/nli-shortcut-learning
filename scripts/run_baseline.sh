@@ -2,24 +2,36 @@
 set -euo pipefail
 
 MODE="${1:-}"
-CONFIG="${2:-}"
+INPUT_VIEW="${2:-}"
 CHECKPOINT="${3:-}"
 RUN_DIR="${4:-}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
-DEFAULT_CONFIG="${REPO_ROOT}/configs/base.yaml"
-
-if [[ -z "${MODE}" || -z "${CONFIG}" ]]; then
-  echo "Usage: $0 {train|eval} <config> [checkpoint] [run_dir]"
-  echo "Defaults: checkpoint=pretrained, run_dir=none"
+if [[ -z "${MODE}" ]]; then
+  echo "Usage: $0 [mode] [input_view] [checkpoint] [run_dir]"
+  echo "Defaults: input_view=pair, checkpoint=pretrained, run_dir=none"
   exit 1
 fi
 
-if [[ -z "${CHECKPOINT}" ]]; then
-  CHECKPOINT="pretrained"
-fi
+case "${INPUT_VIEW}" in
+  pair|hypothesis_only)
+    ;;
+  *)
+    echo "Error: input_view must be 'pair' or 'hypothesis_only'."
+    exit 1
+    ;;
+esac
+
+case "${CHECKPOINT}" in
+  pretrained|best|latest)
+    ;;
+  *)
+    echo "Error: checkpoint must be 'pretrained', 'best' or 'latest'."
+    exit 1
+    ;;
+esac
 
 if [[ "${MODE}" == "train" && "${CHECKPOINT}" == "best" ]]; then
   echo "Error: checkpoint 'best' is only valid for eval."
@@ -34,7 +46,7 @@ fi
 case "${MODE}" in
   train)
     TRAIN_ARGS=(
-      --config "${CONFIG}"
+      --input_view "${INPUT_VIEW}"
       --checkpoint "${CHECKPOINT}"
     )
     if [[ -n "${RUN_DIR}" ]]; then
@@ -42,9 +54,9 @@ case "${MODE}" in
     fi
     python "${REPO_ROOT}/src/training/train.py" "${TRAIN_ARGS[@]}"
     ;;
-  eval|evaluate)
+  eval)
     EVAL_ARGS=(
-      --config "${CONFIG}"
+      --input_view "${INPUT_VIEW}"
       --checkpoint "${CHECKPOINT}"
     )
     if [[ -n "${RUN_DIR}" ]]; then
@@ -53,7 +65,7 @@ case "${MODE}" in
     python "${REPO_ROOT}/src/training/eval.py" "${EVAL_ARGS[@]}"
     ;;
   *)
-    echo "Usage: $0 {train|eval} <config> [checkpoint] [run_dir]"
+    echo "Usage: $0 {train|eval} [input_view] [checkpoint] [run_dir]"
     exit 1
     ;;
 esac

@@ -1,5 +1,7 @@
+# src/utils/logging.py
 from __future__ import annotations
 
+from typing import Any
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -89,7 +91,7 @@ def get_logger(
     return logger
 
 
-def save_config(cfg: dict[str, any], path: str | Path) -> None:
+def save_config(cfg: dict[str, Any], path: str | Path) -> None:
     """Saves a config dictionary to disk as JSON.
 
     Args:
