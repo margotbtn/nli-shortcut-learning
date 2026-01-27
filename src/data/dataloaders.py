@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase, DataCollatorWithPadding
 from transformers.tokenization_utils_base import BatchEncoding
 
-from utils.typing import InputView
-from src.data.standard import load_dataset
+from src.utils.typing import InputView
+from src.data.standard import preprocess_dataset
 
 
 def seed_worker(_worker_id: int) -> None:
@@ -87,7 +87,7 @@ def prepare_dataloader(
         A tuple containing the DataLoader and list of labels.
     """
     # Load the preprocessed dataset
-    ds = load_dataset(
+    ds = preprocess_dataset(
         dataset_name=dataset_name,
         split=split,
         num_proc=num_proc,

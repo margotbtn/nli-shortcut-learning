@@ -4,10 +4,10 @@ from __future__ import annotations
 import os
 from datasets import Dataset, load_dataset
 
-from utils.typing import InputView
+from src.utils.typing import InputView
 
 
-def load_dataset(
+def preprocess_dataset(
         dataset_name: str,
         split: str,
         num_proc: int = min(4, os.cpu_count() or 1),
