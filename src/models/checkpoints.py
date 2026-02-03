@@ -1,5 +1,7 @@
+# src/models/checkpoints.py
 from __future__ import annotations
 
+from typing import Any
 from pathlib import Path
 import json
 import random
@@ -13,7 +15,7 @@ def save_checkpoint(
     ckpt_dir: str | Path,
     model: PreTrainedModel,
     optimizer: torch.optim.Optimizer,
-    scheduler: any,
+    scheduler: Any,
     epoch: int,
     best_val_loss: float,
     val_metrics: dict[str, float],
@@ -70,7 +72,7 @@ def save_checkpoint(
 def load_checkpoint(
     ckpt_dir: str | Path,
     optimizer: torch.optim.Optimizer,
-    scheduler: any,
+    scheduler: Any,
     map_location: str | torch.device = "cpu",
 ) -> dict:
     """Loads trainer_state.pt and restore optimizer/scheduler if provided.

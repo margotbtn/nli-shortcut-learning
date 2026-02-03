@@ -1,3 +1,4 @@
+# src/utils/config.py
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,8 +6,8 @@ import yaml
 
 
 def load_yaml_config(
-        config_path: Path | str,
-        overrides: None | dict[tuple[str] | str, object],
+        config_path: Path | str = 'src/config.yaml',
+        overrides: None | dict[tuple[str] | str, object] = None,
         ) -> dict:
     """Loads a YAML configuration file.
     
