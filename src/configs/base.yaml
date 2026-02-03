@@ -1,0 +1,36 @@
+random:
+  seed: 42
+
+model:
+  pretrained_model_name: "bert-base-uncased"
+
+data:
+  dataset_name: "stanfordnlp/snli"
+  max_length: 128
+  num_proc: 4
+  num_workers: 2
+
+train:
+  split: "train"
+  batch_size: 16
+  epochs: 3
+  learning_rate: 0.00002
+  warmup_step: 9000
+  keep_text: false
+  checkpoint_every_n_steps: 200
+  checkpoint: "pretrained"
+  run_dir: null
+
+validation:
+  split: "validation"
+  batch_size: 32
+  keep_text: true
+
+eval:
+  mode: "standard"
+  split: "test"
+  test_split: "test"
+  batch_size: 32
+  keep_text: true
+  checkpoint: "pretrained"
+  training_run_dir: null
