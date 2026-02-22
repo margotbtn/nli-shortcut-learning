@@ -1,4 +1,5 @@
 # src/utils/config.py
+"""YAML configuration loading with support for nested key-path overrides."""
 from __future__ import annotations
 
 from pathlib import Path

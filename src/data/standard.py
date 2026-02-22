@@ -1,4 +1,5 @@
 # src/data/standard.py
+"""Dataset loading and basic preprocessing for NLI tasks."""
 from __future__ import annotations
 
 import os
