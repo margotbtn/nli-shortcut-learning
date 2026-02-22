@@ -36,3 +36,6 @@ eval:
   keep_text: true
   checkpoint: "pretrained"
   training_run_dir: null
+  lift_scores_path: "results/shortcut_analysis/data/lift_scores.csv"
+  max_lift_threshold: 1.2
+  perplexity_ratio_threshold: 1.5

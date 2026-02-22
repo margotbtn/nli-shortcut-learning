@@ -16,4 +16,4 @@ Dockerfile
 .devcontainer/
 
 results/
-data/raw/
+data/

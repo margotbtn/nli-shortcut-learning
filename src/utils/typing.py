@@ -9,4 +9,4 @@ from typing import Literal
 
 Checkpoint = Literal["pretrained", "latest", "best"]
 InputView = Literal["pair", "hypothesis_only"]
-EvalSet = Literal["standard", "anti_shortcut", "ood"]
+EvalSet = Literal["standard", "snli-filtered", "snli-paraphrased", "hans"]
