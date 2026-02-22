@@ -1,4 +1,5 @@
 # src/utils/seed.py
+"""Utilities for setting random seeds across Python, NumPy, and PyTorch for reproducible experiments."""
 from __future__ import annotations
 
 import os

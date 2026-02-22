@@ -1,4 +1,5 @@
 # src/models/checkpoints.py
+"""Utilities for saving and loading training checkpoints, including model weights, optimizer/scheduler state, and RNG states."""
 from __future__ import annotations
 
 from typing import Any

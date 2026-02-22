@@ -1,3 +1,4 @@
+"""Classification metric computation (accuracy, F1, recall, precision) and confusion matrix generation."""
 from __future__ import annotations
 
 import numpy as np

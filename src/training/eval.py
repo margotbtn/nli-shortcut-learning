@@ -1,4 +1,5 @@
 # src/training/eval.py
+"""Evaluation loop and CLI entry point for assessing sequence classification models on NLI datasets."""
 from __future__ import annotations
 
 from typing import Any

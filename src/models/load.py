@@ -1,4 +1,5 @@
 # src/models/load.py
+"""Utilities for loading pretrained and fine-tuned sequence classification models onto a target device."""
 from __future__ import annotations
 
 import torch

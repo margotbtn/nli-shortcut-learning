@@ -4,3 +4,8 @@ datasets
 torch
 transformers
 tqdm
+matplotlib
+seaborn
+pandas
+scipy
+captum

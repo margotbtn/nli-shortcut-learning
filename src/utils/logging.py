@@ -1,4 +1,5 @@
 # src/utils/logging.py
+"""Logging utilities for creating timestamped run directories and configured loggers."""
 from __future__ import annotations
 
 from typing import Any

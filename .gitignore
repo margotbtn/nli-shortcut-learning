@@ -17,6 +17,3 @@ Dockerfile
 
 results/
 data/raw/
-
-# To reveal later
-notebooks/
