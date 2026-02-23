@@ -76,6 +76,23 @@ Evaluated on the SNLI validation split (9,842 examples). Consistent with publish
 | Attribution by lift bin          | 0.288 (lift ≤ 1.0) → 0.800 (lift > 2.0) — **2.8× gradient** |
 | Spearman correlation             | ρ = 0.281, p = 4.95e-05 (n = 203 tokens)           |
 
+### Phase 4 — Crossed evaluation on anti-shortcut splits (Exp 05)
+
+Both models evaluated on three splits that neutralize lexical shortcuts:
+
+| Split            | n      | Pair    | Hyp-only | Pair drop | Hyp-only drop |
+|------------------|--------|---------|----------|-----------|---------------|
+| SNLI validation  | 9,842  | 90.34%  | 70.91%   | —         | —             |
+| HANS (OOD)       | 30,000 | 59.39%  | 51.62%   | −30.95 pp | −19.29 pp     |
+| SNLI Filtered    | 795    | 89.56%  | 48.18%   | −0.78 pp  | −22.73 pp     |
+| SNLI Paraphrased | 1,235  | 68.91%  | 44.37%   | −21.43 pp | −26.54 pp     |
+
+**SNLI Filtered** provides the cleanest isolation: the pair model drops only −0.78 pp (genuine premise reasoning intact), while the hypothesis-only model drops −22.73 pp — a **29× larger drop** that directly quantifies the causal contribution of lexical shortcuts.
+
+**HANS** reveals a distinct structural failure for the pair model: an entailment bias (99.1% entailment recall, 19.68% non-entailment recall) induced by high-overlap entailment training examples.
+
+**SNLI Paraphrased** shows that the pair model also exploits lexical shortcuts opportunistically when present (−21.43 pp on this originally high-lift subset vs −0.78 pp on the low-lift filtered subset).
+
 ---
 
 ## Project Structure
@@ -87,7 +104,9 @@ Evaluated on the SNLI validation split (9,842 examples). Consistent with publish
 ├── experiments/
 │   ├── exp_01_baseline.md          # Pair model training run and results
 │   ├── exp_02_hypothesis_only.md   # Hypothesis-only ablation results
-│   └── exp_03_shortcut_analysis.md # Full shortcut analysis report
+│   ├── exp_03_shortcut_analysis.md # Lexical and structural shortcut analysis
+│   ├── exp_04_attribution.md       # Integrated Gradients cross-analysis
+│   └── exp_05_crossed_evaluation.md# Anti-shortcut split evaluation (HANS, filtered, paraphrased)
 │
 ├── notebooks/
 │   ├── shortcut_statistics.ipynb   # Lexical lift, structural features, model behaviour
@@ -102,7 +121,10 @@ Evaluated on the SNLI validation split (9,842 examples). Consistent with publish
     │   └── token_attribution.py    # Integrated Gradients and lift cross-analysis
     ├── data/
     │   ├── standard.py             # Dataset loading and preprocessing
-    │   └── dataloaders.py          # Tokenisation and DataLoader creation
+    │   ├── dataloaders.py          # Tokenisation and DataLoader creation
+    │   ├── filtered.py             # Anti-shortcut filtered split (max lift threshold)
+    │   ├── paraphrased.py          # Anti-shortcut paraphrased split (WordNet + GPT-2)
+    │   └── ood.py                  # HANS OOD evaluation utilities
     ├── models/
     │   ├── load.py                 # Model loading (pretrained / checkpoint)
     │   └── checkpoints.py          # Save/load training checkpoints
@@ -164,6 +186,7 @@ jupyter notebook notebooks/attribution.ipynb
 ---
 
 ## Safety & Alignment Relevance
+
 This work illustrates a concrete instance of **goal misgeneralization**:
 - The *intended* objective is semantic inference between sentences.
 - The *learned* objective is shortcut exploitation that generalises poorly under distribution shift.
@@ -173,11 +196,11 @@ Such failures are directly relevant to:
 - robustness under distribution shift — shortcuts break when the annotation artifact is neutralized,
 - misleading signals of alignment or reasoning capability.
 
-The IG analysis adds a mechanistic dimension: the model does not merely benefit from shortcuts at the distributional level — it has internalized them as its primary decision rule, allocating up to 2.8× more attribution to shortcut tokens than to semantically neutral ones.
+The IG analysis (Exp 04) adds a mechanistic dimension: the model does not merely benefit from shortcuts at the distributional level — it has internalized them as its primary decision rule, allocating up to 2.8× more attribution to shortcut tokens than to semantically neutral ones.
 
----
+Phase 4 (Exp 05) adds a **causal dimension**: the SNLI Filtered split — where the pair model holds at 89.56% while the hypothesis-only model drops to 48.18% — provides direct experimental evidence that shortcut exploitation accounts for most of the hypothesis-only model's above-chance performance. The HANS entailment bias (99.1% entailment recall, 19.68% non-entailment recall for the pair model) illustrates that even the stronger model has internalized a structural heuristic that breaks under OOD conditions.
 
-## Next Steps (Phase 4)
-- Construct **anti-shortcut evaluation splits** that neutralize the identified lexical and structural shortcuts.
-- Evaluate both models on these splits to directly measure the accuracy cost of removing shortcut signal.
-- Investigate whether debiasing strategies (e.g., product-of-experts, data augmentation) can reduce shortcut reliance without sacrificing standard validation accuracy.
+## Possible Next Steps
+- Investigate **debiasing strategies** (product-of-experts, confidence regularization, data augmentation) to reduce shortcut reliance without sacrificing standard accuracy.
+- Extend the paraphrased split to cover negation tokens using semantics-preserving transformations (e.g., negation paraphrase with label preservation checks).
+- Probe whether debiased models show reduced IG attribution to shortcut tokens.
